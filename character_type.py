@@ -29,6 +29,15 @@ class CharType(enum.Enum):
     EXCLAMATION_MARK = "EXCLAMATION MARK"
     QUESTION_MARK = "QUESTION MARK"
 
+
+SENTENCE_ENDING_CHARACTER_TYPES = {
+    CharType.KUTEN, CharType.END_QUOTE, CharType.EXCLAMATION_MARK, CharType.QUESTION_MARK
+}
+
+LETTER_TYPES = {
+    CharType.ALPHABET, CharType.HIRAGANA, CharType.KANJI, CharType.KATAKANA
+}
+
 def get_char_type(c):
 	# find the type of a unicode character
 	# Adapted from KyTea

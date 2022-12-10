@@ -1,5 +1,6 @@
 from typing import Dict, List
-from character_type import get_char_type, CharType
+from readability_factor import ReadabilityFactor
+from character_type import get_char_type, CharType, LETTER_TYPES, SENTENCE_ENDING_CHARACTER_TYPES
 
 ALPHABET_RUNS_PERCENTAGE = "ALPHABET_RUNS_PERCENTAGE"
 HIRAGANA_RUNS_PERCENTAGE = "HIRAGANA_RUNS_PERCENTAGE"
@@ -27,19 +28,6 @@ WEIGHTS = {
     CONSTANT: -109.1
 }
 
-SENTENCE_ENDING_CHARACTER_TYPES = {
-    CharType.KUTEN, CharType.END_QUOTE, CharType.EXCLAMATION_MARK, CharType.QUESTION_MARK
-}
-
-LETTER_TYPES = {
-    CharType.ALPHABET, CharType.HIRAGANA, CharType.KANJI, CharType.KATAKANA
-}
-
-class ReadabilityFactor:
-    def __init__(self, name: str, value: float, weight: float):
-        self.name = name
-        self.value = value
-        self.weight = weight
 
 class TateisiReadabilityFormula:
     def __init__(self, text: str) -> None:
@@ -97,6 +85,8 @@ class TateisiReadabilityFormula:
         self.readability_factors[TOOTEN_TO_KUTEN_RATIO] = ratio
 
     def runs_percentages(self) -> None:
+        # I assume percentage means the number of percent points but I've started assuming it
+        # only because the results are less tragic with this
         all_run_count = sum([len(self.runs[letter_type]) for letter_type in LETTER_TYPES])
         self.readability_factors[KANJI_RUNS_PERCENTAGE] = 100.0 * len(self.runs[CharType.KANJI]) / all_run_count
         self.readability_factors[KATAKANA_RUNS_PERCENTAGE] = 100.0 * len(self.runs[CharType.KATAKANA]) / all_run_count
@@ -122,9 +112,9 @@ class TateisiReadabilityFormula:
     def letters_per_sentence(self) -> None:
         if not len(self.sentence_lengths):
             return 0.0
-        self.readability_factors[LETTERS_PER_SENTENCE] = sum(
-            length for length in self.sentence_lengths
-            ) / len(self.sentence_lengths)
+        self.readability_factors[
+            LETTERS_PER_SENTENCE
+            ] = sum(self.sentence_lengths) / len(self.sentence_lengths)
                 
     
     def calculate_readability_score(self) -> float:
@@ -133,7 +123,7 @@ class TateisiReadabilityFormula:
 
         factors = [
             ReadabilityFactor(
-                factor_name, self.readability_factors[factor_name], WEIGHTS[factor_name]
+                factor_name, WEIGHTS[factor_name], self.readability_factors[factor_name]
                 ) for factor_name in self.readability_factors.keys()
         ]
         for factor in factors:
