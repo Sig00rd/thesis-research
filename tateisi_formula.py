@@ -137,7 +137,7 @@ class TateisiReadabilityFormula:
 
 if __name__ == "__main__":
     # text = "ゴジラはモスラと一所懸命に打ち合った。"
-    with open("test_text.txt", "r") as text_file:
+    with open("texts/youkoso_chikyuu_san.txt", "r") as text_file:
         text = text_file.read()
     tatform = TateisiReadabilityFormula(text)
     tatform.calculate_readability_score()

@@ -2,11 +2,13 @@
 # https://pypi.org/project/unidic/
 # https://clrd.ninjal.ac.jp/unidic/faq.html
 # https://japanese.stackexchange.com/a/63365
+# https://jreadability.net/sys/ja
 
 # one note: Lee is using  MeCab v0.996 amd UniDic v2.2.0
 
 import MeCab
 
+import re
 from typing import Dict, List
 
 from character_type import get_char_type, LETTER_TYPES, SENTENCE_ENDING_CHARACTER_TYPES
@@ -31,8 +33,8 @@ CONSTANT = "CONSTANT"
 
 WEIGHTS = {
     MEAN_SENTENCE_LENGTH: -0.056,  # calculate as in tateisi formula
-    KANGO_PROPORTION: -0.126,  # assuming proportion to all tokens since Lee doesn't specify what does he mean
-    WAGO_PROPORTION: -0.042,   # by word
+    KANGO_PROPORTION: -0.126,  # assuming proportion to all tokens since Lee doesn't specify what does he mean by word
+    WAGO_PROPORTION: -0.042,
     VERB_PROPORTION: -0.145,
     AUXILIARY_VERB_PROPORTION: -0.044,
     CONSTANT: 11.724,
@@ -57,7 +59,21 @@ class LeeReadabilityFormula:
         self.verb_count = 0
         self.auxiliary_verbs_count = 0
 
-    def parse_and_print_results(self, sentence: str) -> None:
+    def parse_text(self, text: str) -> None:
+        sentences: List[str] = []
+        lines = list(filter(lambda x: x != "", text.splitlines()))
+        # # todo: remove
+        # lines = lines[0:10]
+
+        for line in lines:
+            line_sentences = re.split(r"」|。", line)
+            for sentence in line_sentences:
+                if len(sentence):
+                    sentences.append(sentence)
+        for sentence in sentences:
+            self.parse_sentence_and_print_results(sentence)
+
+    def parse_sentence_and_print_results(self, sentence: str) -> None:
         print(sentence)
         res = self.tagger.parse(sentence)
         tokens = res.splitlines()
@@ -72,10 +88,9 @@ class LeeReadabilityFormula:
                 break
 
             token_info = token.split(",")
+            if token_info[0] == "":  # this happened for "Are you kidding me, kidding me?" sentence in Silent Cry
+                continue
             value, part_of_speech = token_info[0].split("\t") # pos is relevant if VERB or AUXILIARY_VERB
-            word_category = token_info[12] # relevant if WAGO or KANGO
-            additional_info = token_info[1:8]
-
             self.all_tokens_count += 1
 
             if len(value) == 1:
@@ -92,17 +107,23 @@ class LeeReadabilityFormula:
             
             # print(f"token: {value} pos: {part_of_speech} category: {word_category} additional info: {additional_info}")
 
-            if word_category == WAGO_TAG:
-                self.wago_count += 1
-
-            if word_category == KANGO_TAG:
-                self.kango_count += 1
 
             if part_of_speech == AUXILIARY_VERB_TAG:
                 self.auxiliary_verbs_count += 1
 
             if part_of_speech == VERB_TAG:
                 self.verb_count += 1
+
+            try:
+                word_category = token_info[12] # relevant if WAGO or KANGO
+            except IndexError:
+                continue
+
+            if word_category == WAGO_TAG:
+                self.wago_count += 1
+
+            if word_category == KANGO_TAG:
+                self.kango_count += 1
             
 
             # print(f"token: {value} pos: {part_of_speech} category: {word_category} additional info: {additional_info}")
@@ -112,17 +133,18 @@ class LeeReadabilityFormula:
             f"auxiliary verbs: {self.auxiliary_verbs_count}, "
             f"wago: {self.wago_count}, "
             f"kango: {self.kango_count}, "
-            f"sentence lengths: {self.sentence_lengths}"
+            f"sentence length: {current_sentence_length}"
             )
 
+    # assumption: proportion means percentage (number of percent points) otherwise results don't make sense
     def calculate_readability_factors(self):
         self.readability_factors[
             MEAN_SENTENCE_LENGTH
             ] = sum(self.sentence_lengths) / len(self.sentence_lengths)
-        self.readability_factors[KANGO_PROPORTION] = self.kango_count / self.all_tokens_count
-        self.readability_factors[WAGO_PROPORTION] = self.wago_count / self.all_tokens_count
-        self.readability_factors[VERB_PROPORTION] = self.verb_count / self.all_tokens_count
-        self.readability_factors[AUXILIARY_VERB_PROPORTION] = self.auxiliary_verbs_count / self.all_tokens_count
+        self.readability_factors[KANGO_PROPORTION] = 100 * self.kango_count / self.all_tokens_count
+        self.readability_factors[WAGO_PROPORTION] = 100 * self.wago_count / self.all_tokens_count
+        self.readability_factors[VERB_PROPORTION] = 100 * self.verb_count / self.all_tokens_count
+        self.readability_factors[AUXILIARY_VERB_PROPORTION] = 100 * self.auxiliary_verbs_count / self.all_tokens_count
         
         for name, value in self.readability_factors.items():
             print(f"factor: {name}, value: {value}")
@@ -142,14 +164,14 @@ class LeeReadabilityFormula:
         readability_score = 0.0
         for factor in factors:
             readability_score += factor.value * factor.weight
-        print(readability_score)
+        return readability_score
 
-
+# todo: calculate score and factors for each book and save somewhere
 if __name__=="__main__":
-    with open("test_text.txt", "r") as text_file:
+    with open("texts/youkoso_chikyuu_san.txt", "r") as text_file:
         text = text_file.read()
 
     leeform = LeeReadabilityFormula()
-    leeform.parse_and_print_results(text)
+    leeform.parse_text(text)
     leeform.calculate_readability_factors()
-    leeform.calculate_readability_score()
+    print(leeform.calculate_readability_score())
