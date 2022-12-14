@@ -62,8 +62,6 @@ class LeeReadabilityFormula:
     def parse_text(self, text: str) -> None:
         sentences: List[str] = []
         lines = list(filter(lambda x: x != "", text.splitlines()))
-        # # todo: remove
-        # lines = lines[0:10]
 
         for line in lines:
             line_sentences = re.split(r"」|。", line)
@@ -76,6 +74,7 @@ class LeeReadabilityFormula:
     def parse_sentence_and_print_results(self, sentence: str) -> None:
         print(sentence)
         res = self.tagger.parse(sentence)
+        print(res)
         tokens = res.splitlines()
 
         current_sentence_length = 0
@@ -87,11 +86,15 @@ class LeeReadabilityFormula:
                 current_sentence_length = 0
                 break
 
+            self.all_tokens_count += 1
+
             token_info = token.split(",")
             if token_info[0] == "":  # this happened for "Are you kidding me, kidding me?" sentence in Silent Cry
                 continue
-            value, part_of_speech = token_info[0].split("\t") # pos is relevant if VERB or AUXILIARY_VERB
-            self.all_tokens_count += 1
+            try:
+                value, part_of_speech = token_info[0].split("\t") # pos is relevant if VERB or AUXILIARY_VERB
+            except ValueError:
+                continue
 
             if len(value) == 1:
                 if get_char_type(value) in SENTENCE_ENDING_CHARACTER_TYPES:
@@ -124,9 +127,7 @@ class LeeReadabilityFormula:
 
             if word_category == KANGO_TAG:
                 self.kango_count += 1
-            
 
-            # print(f"token: {value} pos: {part_of_speech} category: {word_category} additional info: {additional_info}")
         print(
             f"all tokens: {self.all_tokens_count}, "
             f"verbs: {self.verb_count}, "
@@ -148,6 +149,7 @@ class LeeReadabilityFormula:
         
         for name, value in self.readability_factors.items():
             print(f"factor: {name}, value: {value}")
+        return self.readability_factors
     
     def calculate_readability_score(self) -> float:
         # sanity check
@@ -166,12 +168,23 @@ class LeeReadabilityFormula:
             readability_score += factor.value * factor.weight
         return readability_score
 
+# case from youkoso chikyuu san one of stories: "\"......, J'en ai déjà trois, Enfin voila! /Au revoir, tu verras ça.\""
+# each token counts towards all tokens but sentence length is 0
 # todo: calculate score and factors for each book and save somewhere
 if __name__=="__main__":
-    with open("texts/youkoso_chikyuu_san.txt", "r") as text_file:
-        text = text_file.read()
+    titles = {'bokko_chan', 'youkoso_chikyuu_san', 'kimagure_robotto', 'doujidai_geemu', 'silent_cry', 'torikaeko'}
 
-    leeform = LeeReadabilityFormula()
-    leeform.parse_text(text)
-    leeform.calculate_readability_factors()
-    print(leeform.calculate_readability_score())
+    for title in titles:
+        with open(f"texts/{title}.txt", "r") as text_file:
+            text = text_file.read()
+
+        leeform = LeeReadabilityFormula()
+        leeform.parse_text(text)
+        factors = leeform.calculate_readability_factors()
+        score = leeform.calculate_readability_score()
+        with open("results.txt", "a") as results_file:
+            results_file.write(f"Title: {title}\n")
+            results_file.write(f"Score: {score}\n")
+            results_file.write(f"Factors: {factors}\n\n")
+    # leeform = LeeReadabilityFormula()
+    # leeform.parse_text("\"......, J'en ai déjà trois, Enfin voila! /Au revoir, tu verras ça.\"")
