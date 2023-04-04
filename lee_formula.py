@@ -8,6 +8,7 @@
 
 import MeCab
 
+import pickle
 import re
 from typing import Dict, List
 
@@ -72,9 +73,7 @@ class LeeReadabilityFormula:
             self.parse_sentence_and_print_results(sentence)
 
     def parse_sentence_and_print_results(self, sentence: str) -> None:
-        print(sentence)
         res = self.tagger.parse(sentence)
-        print(res)
         tokens = res.splitlines()
 
         current_sentence_length = 0
@@ -173,6 +172,7 @@ class LeeReadabilityFormula:
 # todo: calculate score and factors for each book and save somewhere
 if __name__=="__main__":
     titles = {'bokko_chan', 'youkoso_chikyuu_san', 'kimagure_robotto', 'doujidai_geemu', 'silent_cry', 'torikaeko'}
+    results = {}
 
     for title in titles:
         with open(f"texts/{title}.txt", "r") as text_file:
@@ -182,9 +182,13 @@ if __name__=="__main__":
         leeform.parse_text(text)
         factors = leeform.calculate_readability_factors()
         score = leeform.calculate_readability_score()
-        with open("results.txt", "a") as results_file:
-            results_file.write(f"Title: {title}\n")
-            results_file.write(f"Score: {score}\n")
-            results_file.write(f"Factors: {factors}\n\n")
+        weighted_factors = {name: factors[name] * WEIGHTS[name] for name in factors}
+        results[title] = {'score': score, 'factors': factors, 'weighted factors': weighted_factors}
+    with open("leeform.pkl", "wb") as results_pickle_file:
+        pickle.dump(results, results_pickle_file)
+        # with open("results.txt", "a") as results_file:
+        #     results_file.write(f"Title: {title}\n")
+        #     results_file.write(f"Score: {score}\n")
+        #     results_file.write(f"Factors: {factors}\n\n")
     # leeform = LeeReadabilityFormula()
     # leeform.parse_text("\"......, J'en ai déjà trois, Enfin voila! /Au revoir, tu verras ça.\"")

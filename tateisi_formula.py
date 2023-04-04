@@ -1,6 +1,8 @@
 from typing import Dict, List
-from readability_factor import ReadabilityFactor
+import pickle
+
 from character_type import get_char_type, CharType, LETTER_TYPES, SENTENCE_ENDING_CHARACTER_TYPES
+from readability_factor import ReadabilityFactor
 
 ALPHABET_RUNS_PERCENTAGE = "ALPHABET_RUNS_PERCENTAGE"
 HIRAGANA_RUNS_PERCENTAGE = "HIRAGANA_RUNS_PERCENTAGE"
@@ -131,14 +133,29 @@ class TateisiReadabilityFormula:
         readability_score = 0.0
         for factor in factors:
             readability_score += factor.value * factor.weight
-        print(readability_score)
+        return readability_score
 
 
 
 if __name__ == "__main__":
     # text = "ゴジラはモスラと一所懸命に打ち合った。"
-    with open("texts/youkoso_chikyuu_san.txt", "r") as text_file:
-        text = text_file.read()
-    tatform = TateisiReadabilityFormula(text)
-    tatform.calculate_readability_score()
-    # print(tatform.runs, tatform.sentence_lengths)
+    titles = {'bokko_chan', 'youkoso_chikyuu_san', 'kimagure_robotto', 'doujidai_geemu', 'silent_cry', 'torikaeko'}
+    results = {}
+    
+    for title in titles:
+        with open(f"texts/{title}.txt", "r") as text_file:
+            text = text_file.read()
+        tatform = TateisiReadabilityFormula(text)
+        score = tatform.calculate_readability_score()
+        factors = tatform.readability_factors
+        weighted_factors = {name: factors[name] * WEIGHTS[name] for name in factors}
+        results[title] = {'score': score, 'factors': factors, 'weighted factors': weighted_factors}
+
+    with open("tatform.pkl", "wb") as results_pickle_file:
+        pickle.dump(results, results_pickle_file)
+
+        # with open("results_tateisi.txt", "a") as results_file:
+        #     results_file.write(f"Title: {title}\n")
+        #     results_file.write(f"Score: {score}\n")
+        #     results_file.write(f"Factors: {factors}\n\n")
+        #     results_file.write(f"Weighted factors: {weighted_factors}\n\n")
