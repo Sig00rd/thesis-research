@@ -1,5 +1,4 @@
 from typing import Dict, List
-import pickle
 
 from character_type import get_char_type, CharType, LETTER_TYPES, SENTENCE_ENDING_CHARACTER_TYPES
 from readability_factor import ReadabilityFactor
@@ -134,28 +133,3 @@ class TateisiReadabilityFormula:
         for factor in factors:
             readability_score += factor.value * factor.weight
         return readability_score
-
-
-
-if __name__ == "__main__":
-    # text = "ゴジラはモスラと一所懸命に打ち合った。"
-    titles = {'bokko_chan', 'youkoso_chikyuu_san', 'kimagure_robotto', 'doujidai_geemu', 'silent_cry', 'torikaeko'}
-    results = {}
-    
-    for title in titles:
-        with open(f"texts/{title}.txt", "r") as text_file:
-            text = text_file.read()
-        tatform = TateisiReadabilityFormula(text)
-        score = tatform.calculate_readability_score()
-        factors = tatform.readability_factors
-        weighted_factors = {name: factors[name] * WEIGHTS[name] for name in factors}
-        results[title] = {'score': score, 'factors': factors, 'weighted factors': weighted_factors}
-
-    with open("tatform.pkl", "wb") as results_pickle_file:
-        pickle.dump(results, results_pickle_file)
-
-        # with open("results_tateisi.txt", "a") as results_file:
-        #     results_file.write(f"Title: {title}\n")
-        #     results_file.write(f"Score: {score}\n")
-        #     results_file.write(f"Factors: {factors}\n\n")
-        #     results_file.write(f"Weighted factors: {weighted_factors}\n\n")

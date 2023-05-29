@@ -66,7 +66,7 @@ def get_char_type(c):
         return CharType.EXCLAMATION_MARK
     
     # ？
-    if val  == 0xFF1F:
+    if val == 0xFF1F:
         return CharType.QUESTION_MARK
     
 
